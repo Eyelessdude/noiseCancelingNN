@@ -2,9 +2,9 @@ import librosa, librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
 
-file = "./dataset/NoisySpeech_training/noisy10_SNRdb_0.0_clnsp10.wav"
+file = "./NoisySpeech_training/noisy10_SNRdb_0.0_clnsp10.wav"
 
-signal, sr = librosa.load(file, sr=22050)
+signal, sr = librosa.load(file, sr=16000)
 
 # Display the wave plot
 librosa.display.waveplot(signal, sr=sr)
