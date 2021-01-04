@@ -2,7 +2,7 @@ import librosa, librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
 
-file = "./dataset/Noise_training/noisy10_SNRdb_0.0.wav"
+file = "../dataset/Noise_training/noisy10_SNRdb_30.0.wav"
 
 signal, sr = librosa.load(file, sr=22050)
 
