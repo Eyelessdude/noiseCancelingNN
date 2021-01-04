@@ -14,8 +14,8 @@ from numpy.lib import stride_tricks
 def find_files(directory, pattern='*.wav'):
     files = []
     for root, directory_name, filenames in os.walk(directory):
-        for files in fnmatch.filter(filenames, pattern):
-            files.append(os.path.join(root, files))
+        for file in fnmatch.filter(filenames, pattern):
+            files.append(os.path.join(root, file))
     return files
 
 
