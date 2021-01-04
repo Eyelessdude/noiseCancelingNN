@@ -10,8 +10,9 @@ import os
 import random
 from numpy.lib import stride_tricks
 
+
 def find_files(directory, pattern='*.wav'):
-    files=[]
+    files = []
     for root, directory_name, filenames in os.walk(directory):
         for files in fnmatch.filter(filenames, pattern):
             files.append(os.path.join(root, files))
@@ -27,7 +28,8 @@ class Audio_reader(object):
         self.frame_length = frame_length
         self.frame_move = frame_move
         self.is_validation = is_validation
-        self.sample_placeholder_many = tf.compat.v1.placeholder(tf.float32, shape=(None, self.FRAME_IN, 2, frame_length))
+        self.sample_placeholder_many = tf.compat.v1.placeholder(tf.float32,
+                                                                shape=(None, self.FRAME_IN, 2, frame_length))
 
         if not is_validation:
             self.q = tf.queue.RandomShuffleQueue(200000, 5000, tf.float32, shapes=(self.FRAME_IN, 2, frame_length))
@@ -36,15 +38,15 @@ class Audio_reader(object):
         self.enqueue_many = self.q.enqueue_many(self.sample_placeholder_many + 0)
         self.cleanfiles = find_files(clean_dir)
         self.noisyfiles = find_files(noisy_dir)
-        print('%d speech found'%len(self.cleanfiles))
-        print('%d noise found'%len(self.noisyfiles))
+        print('%d speech found' % len(self.cleanfiles))
+        print('%d noise found' % len(self.noisyfiles))
 
     def dequeue(self, num_elements):
-        output=self.q.dequeue_many(num_elements)
+        output = self.q.dequeue_many(num_elements)
         return output
 
     def thread_main(self, sess):
-        stop=False
+        stop = False
 
         len_clean_files = len(self.cleanfiles)
         len_noisy_files = len(self.noisyfiles)
@@ -63,22 +65,20 @@ class Audio_reader(object):
                     data,
                     shape=(gen_frames, self.FRAME_IN, 2, self.frame_length),
                     strides=(
-                        data.strides[0]*self.frame_move,
-                        data.strides[1]*self.frame_move,
+                        data.strides[0] * self.frame_move,
+                        data.strides[1] * self.frame_move,
                         data.strides[0],
                         data.strides[1]
                     )
                 )
                 sess.run(self.enqueue_many,
-                         feed_dict={self.sample_placeholder_many:data_frames})
-                count+=gen_frames
+                         feed_dict={self.sample_placeholder_many: data_frames})
+                count += gen_frames
             np.save('sampleN.npy', count)
-
-
 
     def start_threads(self, sess, num_thread=1):
         for i in range(num_thread):
             thread = threading.Thread(
-                target=self.thread_main, args=(sess, ))
+                target=self.thread_main, args=(sess,))
             thread.daemon = True
             thread.start()

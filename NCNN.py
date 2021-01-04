@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-log10_fac = 1/np.log(10)
+log10_fac = 1 / np.log(10)
 
 
 def var_sum(var):
@@ -10,22 +10,26 @@ def var_sum(var):
         mean = tf.reduce_mean(var)
         tf.summary.scalar(tensor_name + 'mean', mean)
         with tf.name_scope('stddev'):
-            stddev = tf.sqrt(tf.reduce_mean(tf.square(var-mean)))
+            stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
         tf.summary.scalar(tensor_name + 'stddev', stddev)
         tf.summary.scalar(tensor_name + 'max', tf.reduce_max(var))
         tf.summary.scalar(tensor_name + 'min', tf.reduce_min(var))
         tf.summary.histogram(tensor_name + 'histogram', var)
 
+
 def conv1d(x, W):
     return tf.nn.conv1d(x, W, strides=[1, 100, 1, 1], padding='SAME')
+
 
 def weight_variable(shape):
     initial = tf.random.truncated_normal(shape, stddev=0.1)
     return tf.Variable(initial)
 
+
 def bias_variable(shape):
     initial = tf.constant(0.1, shape=shape)
     return tf.Variable(initial)
+
 
 class NoiseNet(object):
     def __init__(self, batch_size, EFTP, FRAME_IN, FRAME_OUT, DECAY=0.999):
@@ -33,10 +37,10 @@ class NoiseNet(object):
         self.EFTP = EFTP
         self.FRAME_IN = FRAME_IN
         self.FRAME_OUT = FRAME_OUT
-        self.DECAY = DECAY #global mean and var estimation using batchnorm decay
+        self.DECAY = DECAY  # global mean and var estimation using batchnorm decay
 
-    def inputs(self, data_frames): #it's mostly the fourier transform
-        data_frames_t = tf.transpose(data_frames, perm=[2,0,1,3])
+    def inputs(self, data_frames):  # it's mostly the fourier transform
+        data_frames_t = tf.transpose(data_frames, perm=[2, 0, 1, 3])
         raw_data = data_frames_t[0][:][:][:]
         raw_speech = data_frames_t[1][:][:][:]
 
@@ -105,9 +109,9 @@ class NoiseNet(object):
         if is_training:
             batch_mean, batch_var = tf.nn.moments(inputs, [0, 1, 2])
             train_mean = tf.compat.v1.assign(population_mean,
-                                   population_mean*self.DECAY + batch_mean * (1-self.DECAY))
+                                             population_mean * self.DECAY + batch_mean * (1 - self.DECAY))
             train_var = tf.compat.v1.assign(population_var,
-                                  population_var*self.DECAY + batch_mean * (1-self.DECAY))
+                                            population_var * self.DECAY + batch_mean * (1 - self.DECAY))
             with tf.control_dependencies([train_mean, train_var]):
                 return tf.nn.batch_normalization(
                     inputs, batch_mean, batch_var, beta, scale, epsilon)
@@ -123,7 +127,7 @@ class NoiseNet(object):
         )
         b_conv = bias_variable([out_feature_maps])
         h_conv_t = conv1d(input, W_conv)
-        #batch normalisation
+        # batch normalisation
         h_conv_b = self.batch_norm_wrapper(h_conv_t, is_train)
         return tf.nn.relu(h_conv_b)
 
@@ -161,7 +165,7 @@ class NoiseNet(object):
         return tf.reshape(h_layer10, [-1, self.EFTP])
 
     def loss(self, inf_targets, targets):
-        loss_v = tf.nn.l2_loss(inf_targets - targets)/self.batch_size
+        loss_v = tf.nn.l2_loss(inf_targets - targets) / self.batch_size
         tf.summary.scalar('loss', loss_v)
         return loss_v
 
