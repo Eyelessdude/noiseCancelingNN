@@ -9,28 +9,28 @@ import audio_reader
 '''learning rate, could be fun to screw around with'''
 LR = 0.00001
 
-FLAGS = tf.app.flags.FLAGS
+FLAGS = tf.compat.v1.flags.FLAGS
 
 # storing checkpoints, the directories are placeholder, haven't tested them
 tf.compat.v1.flags.DEFINE_string(
     'train_dir',
-    'D:\\noiseCancellingNN\\',
+    './',
     """Directory for writing the event logs""")
 tf.compat.v1.flags.DEFINE_string(
     'sum_dir',
-    'D:\\noiseCancellingNN\\summary',
+    './summary',
     """Directory for writing summary""")
 tf.compat.v1.flags.DEFINE_string(
     'noise_dir',
-    'D:\\noiseCancelingNN\\noise_train',
+    './dataset/Noise_training',
     """Directory of noise files""")
 tf.compat.v1.flags.DEFINE_string(
     'noisy_dir',
-    'D:\\noiseCancelingNN\\NoisySpeech_training',
+    './dataset/NoisySpeech_training',
     """Directory of noisy speech files""")
 tf.compat.v1.flags.DEFINE_string(
     'clean_dir',
-    'D:\\noiseCancelingNN\\CleanSpeech_training',
+    './dataset/CleanSpeech_training',
     """Directory of clean speech files"""
 )
 '''add validation directories and validation dataset'''
