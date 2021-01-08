@@ -6,6 +6,10 @@ import tensorflow as tf
 import NCNN
 import audio_reader
 
+from tensorflow.python.framework.ops import disable_eager_execution
+
+disable_eager_execution()
+
 '''learning rate, could be fun to screw around with'''
 LR = 0.00001
 
@@ -101,7 +105,7 @@ def train():
     audio_r.start_threads(sess)
     val_audio_r.start_threads(sess)
 
-    summary_writer = tf.summary.SummaryWriter(
+    summary_writer = tf.compat.v1.summary.FileWriter(
         FLAGS.sum_dir,
         sess.graph
     )

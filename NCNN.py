@@ -18,7 +18,8 @@ def var_sum(var):
 
 
 def conv1d(x, W):
-    return tf.nn.conv1d(x, W, strides=[1, 100, 1, 1], padding='SAME')
+    return tf.compat.v1.nn.conv2d(x, W, strides=[1, 100, 1, 1], padding='SAME') #here it should use conv1d, fix later
+#it works like a 1d convolution does
 
 
 def weight_variable(shape):
@@ -73,12 +74,9 @@ class NoiseNet(object):
         # shape:
         # batch, N_in, NEFF
         images = data_f
-        targets = tf.concat(
-            0,
-            [tf.reshape(
-                speech_f[i][self.FRAME_IN - 1][0:self.EFTP],
-                [1, self.EFTP])
-                for i in range(0, self.batch_size, 1)])
+        targets = [tf.reshape(speech_f[i][self.FRAME_IN - 1][0:self.EFTP], [1, self.EFTP])
+                   for i in range(0, self.batch_size, 1)]
+
         # do per image whitening (not batch normalization!)
         images_reshape = tf.transpose(tf.reshape(
             images, [self.batch_size, -1]))
@@ -120,8 +118,8 @@ class NoiseNet(object):
                 inputs, population_mean, population_var, beta, scale, epsilon)
 
     def conv_layer_wrapper(self, input, out_feature_maps, filter_length, is_train):
-        filter_width = input.get_shape()[1].value
-        in_feature_maps = input.get_shape()[-1].value
+        filter_width = input.get_shape()[1]
+        in_feature_maps = input.get_shape()[-1]
         W_conv = weight_variable(
             [filter_width, filter_length, in_feature_maps, out_feature_maps]
         )
@@ -155,8 +153,8 @@ class NoiseNet(object):
         with tf.compat.v1.variable_scope('layer9') as scope:
             h_layer9 = self.conv_layer_wrapper(h_layer8, 12, 13, is_train)
         with tf.compat.v1.variable_scope('layer10') as scope:
-            f_w = h_layer9.get_shape()[1].value
-            i_fm = h_layer9.get_shape()[-1].value
+            f_w = h_layer9.get_shape()[1]
+            i_fm = h_layer9.get_shape()[-1]
             W_conv10 = weight_variable(
                 [f_w, 129, i_fm, 1]
             )
