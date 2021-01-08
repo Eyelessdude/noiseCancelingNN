@@ -8,13 +8,13 @@ def var_sum(var):
     with tf.name_scope('summaries'):
         tensor_name = var.op.name
         mean = tf.reduce_mean(var)
-        tf.summary.scalar(tensor_name + 'mean', mean)
+        tf.compat.v1.summary.scalar(tensor_name + 'mean', mean)
         with tf.name_scope('stddev'):
             stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-        tf.summary.scalar(tensor_name + 'stddev', stddev)
-        tf.summary.scalar(tensor_name + 'max', tf.reduce_max(var))
-        tf.summary.scalar(tensor_name + 'min', tf.reduce_min(var))
-        tf.summary.histogram(tensor_name + 'histogram', var)
+        tf.compat.v1.summary.scalar(tensor_name + 'stddev', stddev)
+        tf.compat.v1.summary.scalar(tensor_name + 'max', tf.reduce_max(var))
+        tf.compat.v1.summary.scalar(tensor_name + 'min', tf.reduce_min(var))
+        tf.compat.v1.summary.histogram(tensor_name + 'histogram', var)
 
 
 def conv1d(x, W):
@@ -164,7 +164,7 @@ class NoiseNet(object):
 
     def loss(self, inf_targets, targets):
         loss_v = tf.nn.l2_loss(inf_targets - targets) / self.batch_size
-        tf.summary.scalar('loss', loss_v)
+        tf.compat.v1.summary.scalar('loss', loss_v)
         return loss_v
 
     def train_optimizer(selfself, loss, lr):

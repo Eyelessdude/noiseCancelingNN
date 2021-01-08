@@ -52,7 +52,7 @@ class Audio_reader(object):
         len_noisy_files = len(self.noisyfiles)
         count = 0
         while not stop:
-            ids = range(len_clean_files)
+            ids = list(range(len_clean_files))
             random.shuffle(ids)
             for i in ids:
                 clean, _ = librosa.load(self.cleanfiles[i], sr=None)
@@ -61,14 +61,15 @@ class Audio_reader(object):
                 gen_frames = np.floor(
                     (len(clean) - self.frame_length) / self.frame_move - self.FRAME_IN)
                 data = np.concatenate((noisy, clean))
+                stride = data.strides
                 data_frames = stride_tricks.as_strided(
                     data,
-                    shape=(gen_frames, self.FRAME_IN, 2, self.frame_length),
+                    shape=(gen_frames.astype(int), self.FRAME_IN, 2, self.frame_length),
                     strides=(
                         data.strides[0] * self.frame_move,
-                        data.strides[1] * self.frame_move,
+                        data.strides[0] * self.frame_move,
                         data.strides[0],
-                        data.strides[1]
+                        data.strides[0]
                     )
                 )
                 sess.run(self.enqueue_many,

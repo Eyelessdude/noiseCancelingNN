@@ -40,12 +40,12 @@ tf.compat.v1.flags.DEFINE_string(
 '''add validation directories and validation dataset'''
 tf.compat.v1.flags.DEFINE_string(
     'val_noisy_dir',
-    'D:\\noiseCancellingNN\\NoisySpeech_validation',
+    './dataset/NoisySpeech_validation',
     """Directory of noisy speech files, for validating"""
 )
 tf.compat.v1.flags.DEFINE_string(
     'val_clean_dir',
-    'D:\\noiseCancellingNN\\CleanSpeech_validation',
+    './dataset/CleanSpeech_validation',
     """Directory of clean speech files, for validating"""
 )
 
@@ -141,9 +141,9 @@ def train():
             np_val_loss = 0
             print('Validation in progress...')
             for j in range(int(batch_of_val)):
-                temp_loss, = sess.run(
+                temp_loss = sess.run(
                     [loss], feed_dict={is_val: True})
-                np_val_loss += temp_loss
+                np_val_loss += temp_loss[0]
             val_audio_r.dequeue(val_left_to_dequeue)
             mean_val_loss = np_val_loss / batch_of_val
             print('validation loss %.2f' % mean_val_loss)
