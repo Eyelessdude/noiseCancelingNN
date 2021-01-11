@@ -67,17 +67,14 @@ def train():
     coord = tf.train.Coordinator()
 
     audio_r = audio_reader.Audio_reader(
-        FLAGS.clean_dir, FLAGS.noisy_dir, coord,
+        FLAGS.noisy_dir, coord,
         FRAME_IN, FFTP, frame_move, is_validation=False)
 
-    '''THIS WONT WORK, the directories for validation arent there
-    we need to run the speech synthesizer with appropriate cfg to
-    generate audio files for generation'''
+
     val_audio_r = audio_reader.Audio_reader(
-        FLAGS.val_clean_dir, FLAGS.val_noisy_dir, coord,
+        FLAGS.clean_dir, coord,
         FRAME_IN, FFTP, frame_move, is_validation=False)
 
-    # we should have a validation audio reader here for validating
 
     is_val = tf.compat.v1.placeholder(dtype=tf.bool, shape=())
     NoiseNET = NCNN.NoiseNet(batch_size, EFTP, FRAME_IN, FRAME_OUT)
@@ -85,7 +82,7 @@ def train():
     train_data_frames = audio_r.dequeue(batch_size)
     val_data_frames = val_audio_r.dequeue(batch_size)
 
-    data_frames = tf.cond(is_val, lambda: val_data_frames, lambda: train_data_frames)
+    data_frames = tf.compat.v1.cond(is_val, lambda: val_data_frames, lambda: train_data_frames)
 
     images, targets = NoiseNET.inputs(data_frames)
     inf_targets = NoiseNET.inference(images, is_train=True)
@@ -93,7 +90,7 @@ def train():
     loss = NoiseNET.loss(inf_targets, targets)
 
     train_op = NoiseNET.train_optimizer(loss, LR)
-    saver = tf.compat.v1.train.Saver(tf.compat.v1.all_variables())
+    saver = tf.compat.v1.train.Saver(tf.compat.v1.all_variables(), max_to_keep=99)
 
     summary_op = tf.compat.v1.summary.merge_all()
     init = tf.compat.v1.initialize_all_variables()
@@ -137,7 +134,7 @@ def train():
             summary_writer.add_summary(summary_str, step)
 
         # validation every 100000 step
-        if step % 100000 == 0 or (step + 1) == FLAGS.max_steps:
+        if step !=0 and (step % 100000 == 0 or (step + 1) == FLAGS.max_steps):
             np_val_loss = 0
             print('Validation in progress...')
             for j in range(int(batch_of_val)):

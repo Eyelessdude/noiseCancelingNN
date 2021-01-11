@@ -77,7 +77,7 @@ class NoiseNet(object):
         targets = [tf.reshape(speech_f[i][self.FRAME_IN - 1][0:self.EFTP], [1, self.EFTP])
                    for i in range(0, self.batch_size, 1)]
 
-        # do per image whitening (not batch normalization!)
+        # do per image whitening
         images_reshape = tf.transpose(tf.reshape(
             images, [self.batch_size, -1]))
         targets_reshape = tf.transpose(tf.reshape(
@@ -95,7 +95,6 @@ class NoiseNet(object):
         return images_norm, targets_norm
 
     def batch_norm_wrapper(self, inputs, is_training, epsilon=1e-6):
-        '''wrapper for all the batch normalisation operations'''
         scale = tf.Variable(tf.ones(inputs.get_shape()[-1]))
         beta = tf.Variable(tf.ones(inputs.get_shape()[-1]))
 
@@ -111,10 +110,10 @@ class NoiseNet(object):
             train_var = tf.compat.v1.assign(population_var,
                                             population_var * self.DECAY + batch_mean * (1 - self.DECAY))
             with tf.control_dependencies([train_mean, train_var]):
-                return tf.nn.batch_normalization(
+                return tf.compat.v1.nn.batch_normalization(
                     inputs, batch_mean, batch_var, beta, scale, epsilon)
         else:
-            return tf.nn.batch_normalization(
+            return tf.compat.v1.nn.batch_normalization(
                 inputs, population_mean, population_var, beta, scale, epsilon)
 
     def conv_layer_wrapper(self, input, out_feature_maps, filter_length, is_train):
@@ -127,7 +126,7 @@ class NoiseNet(object):
         h_conv_t = conv1d(input, W_conv)
         # batch normalisation
         h_conv_b = self.batch_norm_wrapper(h_conv_t, is_train)
-        return tf.nn.relu(h_conv_b)
+        return tf.compat.v1.nn.relu(h_conv_b)
 
     def inference(self, images, is_train):
         # a lot of stuff we could mess around in here - this is where we basically
@@ -163,11 +162,11 @@ class NoiseNet(object):
         return tf.reshape(h_layer10, [-1, self.EFTP])
 
     def loss(self, inf_targets, targets):
-        loss_v = tf.nn.l2_loss(inf_targets - targets) / self.batch_size
+        loss_v = tf.compat.v1.nn.l2_loss(targets - inf_targets) / self.batch_size
         tf.compat.v1.summary.scalar('loss', loss_v)
         return loss_v
 
-    def train_optimizer(selfself, loss, lr):
+    def train_optimizer(self, loss, lr):
         optimizer = tf.compat.v1.train.AdamOptimizer(
             learning_rate=lr,
             beta1=0.9,
