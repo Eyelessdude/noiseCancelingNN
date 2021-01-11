@@ -105,7 +105,7 @@ class NoiseNet(object):
             tf.ones([inputs.get_shape()[-1]]), trainable=False)
 
         if is_training:
-            batch_mean, batch_var = tf.nn.moments(inputs, [0, 1, 2])
+            batch_mean, batch_var = tf.compat.v1.nn.moments(inputs, [0, 1, 2])
             train_mean = tf.compat.v1.assign(population_mean,
                                              population_mean * self.DECAY + batch_mean * (1 - self.DECAY))
             train_var = tf.compat.v1.assign(population_var,

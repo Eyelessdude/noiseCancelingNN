@@ -38,66 +38,37 @@ FLAGS = tf.compat.v1.flags.FLAGS
 # directory to load the model
 tf.compat.v1.flags.DEFINE_string(
     'train_dir',
-    './SENN2',
-    """Directory where to write event logs """
-    """and checkpoint.""")
+    './models',
+    """Model directory""")
 
-# meaning of the following params can be found in SENN_train.py
+
 LR = 0.01
-N_IN = 8
-NEFF = 129
-NFFT = 256
-N_OUT = 1
+FRAME_IN = 8
+EFTP = 129
+FFTP = 256
+FRAME_OUT = 1
 Overlap = 0.75
 mul_fac = 0.2
-NMOVE = (1 - Overlap) * NFFT
-audio_dir = './dataset/CleanSpeech_training/clnsp1.wav'
-noise_dir = './dataset/Noise_training/noisy1_SNRdb_0.0.wav'
-# dir to write the clean speech
-out_org_dir = './test_o.wav'
-# dir to write the clean speech inference
-out_audio_dir = './test.wav'
+frame_move = 32 #(1 - Overlap) * EFTP
+noisy_dir = './dataset/NoisySpeech_validation/noisy1_SNRdb_0.0_clnsp1.wav'
+clean_dir = './dataset/CleanSpeech_validation/clnsp1.wav'
+out_original_noisy_dir = './validation/test_noisy.wav'
+out_original_clean_dir = './validation/test_clean.wav'
+out_audio_dir = './validation/test_NCNN.wav'
 
-audio_org, sr = librosa.load(audio_dir, sr=None)
-noise_org, sr = librosa.load(noise_dir, sr=None)
-
-audio_len = len(audio_org)
-noise_len = len(noise_org)
-tot_len = max(audio_len, noise_len)
+noisy_org, sr = librosa.load(noisy_dir, sr=None)
+clean_org, _ = librosa.load(clean_dir, sr=None)
 
 
-
-# mix the sample
-if audio_len < noise_len:
-    rep_time = int(np.floor(noise_len / audio_len))
-    left_len = noise_len - audio_len * rep_time
-    temp_data = np.tile(audio_org, [1, rep_time])
-    temp_data.shape = (temp_data.shape[1], )
-    audio = np.hstack((
-        temp_data, audio_org[:left_len]))
-    noise = np.array(noise_org)
-else:
-    rep_time = int(np.floor(audio_len / noise_len))
-    left_len = audio_len - noise_len * rep_time
-    temp_data = np.tile(noise_org, [1, rep_time])
-    temp_data.shape = (temp_data.shape[1], )
-    noise = np.hstack((
-        temp_data, noise_org[:left_len]))
-    audio = np.array(audio_org)
-
-in_audio = (audio + mul_fac * noise)
-
-in_stft = stft(in_audio, NFFT, Overlap)
+in_stft = stft(noisy_org, FFTP, Overlap)
 in_stft_amp = np.maximum(np.abs(in_stft), 1e-5)
 in_data = 20. * np.log10(in_stft_amp * 100)
-# ipdb.set_trace()
 phase_data = in_stft / in_stft_amp
 
-# ipdb.set_trace()
 data_len = in_data.shape[0]
-assert NEFF == in_data.shape[1], 'Uncompatible image height'
-out_len = data_len - N_IN + 1
-shape = int((out_len - 1) * NMOVE + NFFT)
+assert EFTP == in_data.shape[1], 'Uncompatible image height'
+out_len = data_len - FRAME_IN + 1
+shape = int((out_len - 1) * frame_move + FFTP)
 out_audio = np.zeros(shape=[shape])
 
 
@@ -109,58 +80,63 @@ init_op = tf.compat.v1.initialize_all_variables()
 
 batch_size = 1
 
-SE_Net = NCNN.NoiseNet(
-    batch_size, NEFF, N_IN, N_OUT)
+NoiseNet = NCNN.NoiseNet(batch_size, EFTP, FRAME_IN, FRAME_OUT)
 
-images = tf.compat.v1.placeholder(tf.float32, [N_IN, NEFF])
+images = tf.compat.v1.placeholder(tf.float32, [FRAME_IN, EFTP])
 
-targets = tf.compat.v1.placeholder(tf.float32, [NEFF])
+targets = tf.compat.v1.placeholder(tf.float32, [EFTP])
 
-inf_targets = SE_Net.inference(images, is_train=False)
+inf_targets = NoiseNet.inference(images, is_train=True)
 
-loss = SE_Net.loss(inf_targets, targets)
+loss = NoiseNet.loss(inf_targets, targets)
 
 # train_op = SE_Net.train(loss, LR)
 
+# saver = tf.compat.v1.train.import_meta_graph('./models/model.ckpt-1300000.meta')
 saver = tf.compat.v1.train.Saver(tf.compat.v1.all_variables())
+sess = tf.compat.v1.Session()
+summary_op = tf.compat.v1.summary.merge_all()
 
+# with tf.compat.v1.Session() as sess:
+# restore the model
 
-with tf.compat.v1.Session() as sess:
-    # restore the model
-    saver.restore(sess, './model/model.ckpt-1000000')
-    print("Model restored")
-    # sess.run(tf.initialize_all_variables())
-    i = 0
-    while(i < out_len):
-        # show progress
-        if i % 100 == 0:
-            print('frame num: %d' % (i))
-        feed_in_data = in_data[i:i + N_IN][:]
-        # normalization
-        data_mean = np.mean(feed_in_data)
-        data_var = np.var(feed_in_data)
-        feed_in_data = (feed_in_data - data_mean) / np.sqrt(data_var)
-        # get the speech inference
-        inf_frame, = sess.run(
-            [inf_targets],
-            feed_dict={images: feed_in_data})
-        inf_frame = inf_frame * np.sqrt(data_var) + data_mean
-        out_amp_tmp = 10 ** (inf_frame / 20) / 100
-        out_stft = out_amp_tmp * phase_data[i + N_IN - 1][:]
-        out_stft.shape = (NEFF, )
-        con_data = out_stft[-2:0:-1].conjugate()
-        out_amp = np.concatenate((out_stft, con_data))
-        frame_out_tmp = np.fft.ifft(out_amp).astype(np.float64)
-        # frame_out_tmp = frame_out_tmp / 255
-        # overlap and add to get the final time domain wavform
-        slice_start = int(i * NMOVE)
-        slice_end = int(i * NMOVE + NFFT)
-        out_audio[slice_start: slice_end] += frame_out_tmp * 0.5016
-        # ipdb.set_trace()
-        i = i + 1
-    # length = img.shape[]
+saver.restore(sess, './models/model.ckpt-10000')
+# sess.run(tf.compat.v1.initialize_all_variables())
+print("Model restored")
+i = 0
+while(i < out_len):
+    # show progress
+    # if i % 100 == 0:
+    #     print('frame num: %d' % (i))
+    feed_in_data = in_data[i:i + FRAME_IN][:] #data loaded from audio file
+    # normalization
+    data_mean = np.mean(feed_in_data) #data from saved model
+    data_var = np.var(feed_in_data) #data from saved model
+    feed_in_data = (feed_in_data - data_mean) / np.sqrt(data_var)
+    # test = tf.compat.v1.Variable()
+    test2 = feed_in_data #test values pls ignore
+    # get the speech inference
+    inf_frame = np.asarray(sess.run(
+        inf_targets,
+        feed_dict={images: feed_in_data}))
+    inf_frame = inf_frame * np.sqrt(data_var) + data_mean
+    out_amp_tmp = 10 ** (inf_frame / 20) / 100
+    out_stft = out_amp_tmp * phase_data[i + FRAME_IN - 1][:]
+    out_stft.shape = (EFTP, )
+    con_data = out_stft[-2:0:-1].conjugate()
+    out_amp = np.concatenate((out_stft, con_data))
+    frame_out_tmp = np.fft.ifft(out_amp).astype(np.float64)
+    # frame_out_tmp = frame_out_tmp / 255
+    # overlap and add to get the final time domain wavform
+    slice_start = int(i * frame_move)
+    slice_end = int(i * frame_move + FFTP)
+    out_audio[slice_start: slice_end] += frame_out_tmp * 0.5016
+    # ipdb.set_trace()
+    i = i + 1
+# length = img.shape[]
 
 # ipdb.set_trace()
 # store the computed results
 sf.write(out_audio_dir, out_audio, sr)
-sf.write(out_org_dir, in_audio, sr)
+sf.write(out_original_noisy_dir, noisy_org, sr)
+sf.write(out_original_clean_dir, clean_org, sr)

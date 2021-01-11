@@ -49,7 +49,7 @@ tf.compat.v1.flags.DEFINE_string(
     """Directory of clean speech files, for validating"""
 )
 
-tf.compat.v1.flags.DEFINE_integer('max_steps', 2000000000, """Number of batches to run""")
+tf.compat.v1.flags.DEFINE_integer('max_steps', 100000, """Number of batches to run""")
 
 FFTP = 256  # number of fft points
 EFTP = 129  # number of effective fft points
