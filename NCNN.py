@@ -42,8 +42,8 @@ class NoiseNet(object):
 
     def inputs(self, data_frames):  # it's mostly the fourier transform
         data_frames_t = tf.transpose(data_frames, perm=[2, 0, 1, 3])
-        raw_data = data_frames_t[0][:][:][:]
-        raw_speech = data_frames_t[1][:][:][:]
+        raw_data = data_frames_t[0][:][:][:] #clean speech
+        raw_speech = data_frames_t[1][:][:][:] #noisy speech
 
         # Fast fourier transform
         # shape:

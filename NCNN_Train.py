@@ -10,6 +10,9 @@ from tensorflow.python.framework.ops import disable_eager_execution
 
 disable_eager_execution()
 
+from tensorflow.python.client import device_lib
+print(device_lib.list_local_devices())
+
 '''learning rate, could be fun to screw around with'''
 LR = 0.00001
 
@@ -49,7 +52,7 @@ tf.compat.v1.flags.DEFINE_string(
     """Directory of clean speech files, for validating"""
 )
 
-tf.compat.v1.flags.DEFINE_integer('max_steps', 100000, """Number of batches to run""")
+tf.compat.v1.flags.DEFINE_integer('max_steps', 1000000000, """Number of batches to run""")
 
 FFTP = 256  # number of fft points
 EFTP = 129  # number of effective fft points
@@ -109,6 +112,8 @@ def train():
 
     val_loss_id = 0
 
+    saver.restore(sess, './model.ckpt-50000')
+
     for step in range(FLAGS.max_steps):
         start_time = time.time()
         _, loss_value = sess.run(
@@ -134,7 +139,7 @@ def train():
             summary_writer.add_summary(summary_str, step)
 
         # validation every 100000 step
-        if step !=0 and (step % 100000 == 0 or (step + 1) == FLAGS.max_steps):
+        if step % 100000 == 0 or (step + 1) == FLAGS.max_steps:
             np_val_loss = 0
             print('Validation in progress...')
             for j in range(int(batch_of_val)):
@@ -150,7 +155,7 @@ def train():
 
         # store model every 10000 step
         if step % 10000 == 0 or (step + 1) == FLAGS.max_steps:
-            checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
+            checkpoint_path = os.path.join(FLAGS.train_dir, 'model')
             saver.save(sess, checkpoint_path, global_step=step)
 
 

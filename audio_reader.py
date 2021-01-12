@@ -49,7 +49,7 @@ class Audio_reader(object):
         count = 0
         while not stop:
             ids = list(range(len_sound_files))
-            random.shuffle(ids)
+            # random.shuffle(ids)
             for i in ids:
                 sound, _ = librosa.load(self.soundfiles[i], sr=None)
                 '''number of generated frames'''

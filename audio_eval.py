@@ -100,7 +100,7 @@ population_var = tf.compat.v1.placeholder(tf.float32)
 # with tf.compat.v1.Session() as sess:
 # restore the model
 
-saver.restore(sess, './models/model.ckpt-10000')
+saver.restore(sess, './model.ckpt-50000')
 # sess.run(tf.compat.v1.initialize_all_variables())
 print("Model restored")
 i = 0
