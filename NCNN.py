@@ -42,13 +42,13 @@ class NoiseNet(object):
 
     def inputs(self, data_frames):  # it's mostly the fourier transform
         data_frames_t = tf.transpose(data_frames, perm=[2, 0, 1, 3])
-        raw_data = data_frames_t[0][:][:][:] #clean speech
-        raw_speech = data_frames_t[1][:][:][:] #noisy speech
+        raw_noisyspeech = data_frames_t[0][:][:][:]
+        raw_cleanspeech = data_frames_t[1][:][:][:]
 
         # Fast fourier transform
         # shape:
         # batch, N_in, NFFT
-        data_f0 = tf.signal.fft(tf.cast(raw_data, tf.complex64))
+        data_f0 = tf.signal.fft(tf.cast(raw_noisyspeech, tf.complex64))
         # shape:
         # NFFT, batch, N_in
         data_f1 = tf.transpose(data_f0, [2, 0, 1])
@@ -62,7 +62,7 @@ class NoiseNet(object):
         # into log spectrum
         data_f = 10 * tf.math.log(data_f5 * 10000) * log10_fac
         # same operational for reference speech
-        speech_f0 = tf.signal.fft(tf.cast(raw_speech, tf.complex64))
+        speech_f0 = tf.signal.fft(tf.cast(raw_cleanspeech, tf.complex64))
         speech_f1 = tf.transpose(speech_f0, [2, 0, 1])
         speech_f2 = speech_f1[0:self.EFTP][:][:]
         speech_f3 = tf.transpose(speech_f2, [1, 2, 0])
@@ -83,11 +83,10 @@ class NoiseNet(object):
         targets_reshape = tf.transpose(tf.reshape(
             targets, [self.batch_size, -1]))
         batch_mean, batch_var = tf.nn.moments(images_reshape, [0])
-        images_reshape_norm = tf.nn.batch_normalization(
+        images_reshape_norm = tf.compat.v1.nn.batch_normalization(
             images_reshape, batch_mean, batch_var, 0, 1, 1e-10)
-        targets_reshape_norm = tf.nn.batch_normalization(
+        targets_reshape_norm = tf.compat.v1.nn.batch_normalization(
             targets_reshape, batch_mean, batch_var, 0, 1, 1e-10)
-        # ipdb.set_trace()
         images_norm = tf.reshape(tf.transpose(images_reshape_norm),
                                  [self.batch_size, self.FRAME_IN, self.EFTP])
         targets_norm = tf.reshape(tf.transpose(targets_reshape_norm),

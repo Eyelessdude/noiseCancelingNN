@@ -12,26 +12,6 @@ from numpy.lib import stride_tricks
 from tensorflow.python.framework.ops import disable_eager_execution
 
 
-def stft(sig, frameSize, overlapFac=0.75, window=np.hanning):
-    """ short time fourier transform of audio signal """
-    win = window(frameSize)
-    hopSize = int(frameSize - np.floor(overlapFac * frameSize))
-    # zeros at beginning (thus center of 1st window should be for sample nr. 0)
-    # samples = np.append(np.zeros(np.floor(frameSize / 2.0)), sig)
-    samples = np.array(sig, dtype='float64')
-    # cols for windowing
-    cols = np.ceil((len(samples) - frameSize) / float(hopSize)) + 1
-    cols = int(cols)
-    # zeros at end (thus samples can be fully covered by frames)
-    samples = np.append(samples, np.zeros(frameSize))
-    frames = stride_tricks.as_strided(
-        samples,
-        shape=(cols, frameSize),
-        strides=(samples.strides[0] * hopSize, samples.strides[0])).copy()
-    frames *= win
-    return np.fft.rfft(frames)
-
-
 disable_eager_execution()
 
 FLAGS = tf.compat.v1.flags.FLAGS
@@ -41,16 +21,14 @@ tf.compat.v1.flags.DEFINE_string(
     './models',
     """Model directory""")
 
-
-LR = 0.01
+LR = 0.0001
 FRAME_IN = 8
 EFTP = 129
 FFTP = 256
 FRAME_OUT = 1
-Overlap = 0.75
 mul_fac = 0.2
-frame_move = 64 #(1 - Overlap) * EFTP
-noisy_dir = './dataset/NoisySpeech_validation/noisy2_SNRdb_0.0_clnsp2.wav'
+frame_move = 64
+noisy_dir = './dataset/NoisySpeech_validation/noisy2.wav'
 clean_dir = './dataset/CleanSpeech_validation/clnsp2.wav'
 out_original_noisy_dir = './validation/test_noisy.wav'
 out_original_clean_dir = './validation/test_clean.wav'
@@ -60,7 +38,7 @@ noisy_org, sr = librosa.load(noisy_dir, sr=None)
 clean_org, _ = librosa.load(clean_dir, sr=None)
 
 
-in_stft = stft(noisy_org, FFTP, Overlap)
+in_stft = np.transpose(librosa.core.stft(noisy_org, n_fft=FFTP, hop_length=frame_move, window=np.hanning(FFTP)), [1, 0])
 in_stft_amp = np.maximum(np.abs(in_stft), 1e-5)
 in_data = 20. * np.log10(in_stft_amp * 100)
 phase_data = in_stft / in_stft_amp
@@ -100,7 +78,7 @@ population_var = tf.compat.v1.placeholder(tf.float32)
 # with tf.compat.v1.Session() as sess:
 # restore the model
 
-saver.restore(sess, './model.ckpt-50000')
+saver.restore(sess, './model-10000')
 # sess.run(tf.compat.v1.initialize_all_variables())
 print("Model restored")
 i = 0

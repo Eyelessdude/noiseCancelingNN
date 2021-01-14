@@ -28,6 +28,7 @@ plt.plot(frequency_part, magnitude_part)
 plt.xlabel("Frequency")
 plt.ylabel("Magnitude")
 plt.show()
+plt.show()
 
 # Apply STFT and get spectrogram
 fft_windows = 2048

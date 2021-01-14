@@ -11,6 +11,7 @@ from tensorflow.python.framework.ops import disable_eager_execution
 disable_eager_execution()
 
 from tensorflow.python.client import device_lib
+
 print(device_lib.list_local_devices())
 
 '''learning rate, could be fun to screw around with'''
@@ -56,11 +57,11 @@ tf.compat.v1.flags.DEFINE_integer('max_steps', 1000000000, """Number of batches 
 
 FFTP = 256  # number of fft points
 EFTP = 129  # number of effective fft points
-frame_move = 64  # roughly 8ms, amount by which
+frame_move = 64  # roughly 8ms
 batch_size = 128
 FRAME_IN = 8  # amount of spectogram frames presented to the net
 FRAME_OUT = 1  # we want to have just one frame of a full length audio file going out
-validation_samples = 700000  # we need to have a total validation set number here
+validation_samples = 500000  # amount of frames which we want to validate per 100k steps
 batch_of_val = np.floor(validation_samples / batch_size)
 val_left_to_dequeue = validation_samples - batch_of_val * batch_size
 val_loss = np.zeros([1000000])
@@ -69,15 +70,15 @@ val_loss = np.zeros([1000000])
 def train():
     coord = tf.train.Coordinator()
 
-    audio_r = audio_reader.Audio_reader(
-        FLAGS.noisy_dir, coord,
-        FRAME_IN, FFTP, frame_move, is_validation=False)
+    audio_r = audio_reader.Audio_reader(FLAGS.clean_dir,
+                                        FLAGS.noisy_dir, coord,
+                                        FRAME_IN, FFTP, frame_move, is_validation=False)
 
-
-    val_audio_r = audio_reader.Audio_reader(
-        FLAGS.clean_dir, coord,
-        FRAME_IN, FFTP, frame_move, is_validation=False)
-
+    val_audio_r = audio_reader.Audio_reader(FLAGS.val_clean_dir,
+                                            FLAGS.val_noisy_dir, coord,
+                                            FRAME_IN, FFTP, frame_move, is_validation=False)
+    # count = np.load('sampleN.npy')
+    # print('generated frames: %d' % count)
 
     is_val = tf.compat.v1.placeholder(dtype=tf.bool, shape=())
     NoiseNET = NCNN.NoiseNet(batch_size, EFTP, FRAME_IN, FRAME_OUT)
@@ -93,7 +94,7 @@ def train():
     loss = NoiseNET.loss(inf_targets, targets)
 
     train_op = NoiseNET.train_optimizer(loss, LR)
-    saver = tf.compat.v1.train.Saver(tf.compat.v1.all_variables(), max_to_keep=99)
+    saver = tf.compat.v1.train.Saver(tf.compat.v1.all_variables(), max_to_keep=99)  # store all the models
 
     summary_op = tf.compat.v1.summary.merge_all()
     init = tf.compat.v1.initialize_all_variables()
@@ -110,9 +111,7 @@ def train():
         sess.graph
     )
 
-    val_loss_id = 0
-
-    saver.restore(sess, './model.ckpt-50000')
+    # saver.restore(sess, './model-10000') #load the model. worth checking how it learns with incorrectly taught model
 
     for step in range(FLAGS.max_steps):
         start_time = time.time()
@@ -122,7 +121,7 @@ def train():
         duration = time.time() - start_time
 
         assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
-        # training loss every 100 steps
+        # grab training loss. mby increase lr each 400 steps if it hasn't learnt anything
         if step % 100 == 0:
             num_examples_per_step = batch_size
             examples_per_sec = num_examples_per_step / duration
@@ -132,14 +131,14 @@ def train():
                 '%s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)')
             print(format_str % (datetime.now(), step,
                                 loss_value, examples_per_sec, sec_per_batch))
-        # summary every 100 steps
-        if step % 100 == 0:
+        # this just spits out the summaries
+        # if step % 100 == 0:
             summary_str = sess.run(
                 summary_op, feed_dict={is_val: False})
             summary_writer.add_summary(summary_str, step)
 
-        # validation every 100000 step
-        if step % 100000 == 0 or (step + 1) == FLAGS.max_steps:
+        # validate each 100k steps
+        if step!=0 and (step % 100000 == 0 or (step + 1) == FLAGS.max_steps):
             np_val_loss = 0
             print('Validation in progress...')
             for j in range(int(batch_of_val)):
@@ -149,11 +148,8 @@ def train():
             val_audio_r.dequeue(val_left_to_dequeue)
             mean_val_loss = np_val_loss / batch_of_val
             print('validation loss %.2f' % mean_val_loss)
-            val_loss[val_loss_id] = mean_val_loss
-            val_loss_id += 1
-            np.save('val_loss2.npy', val_loss)
 
-        # store model every 10000 step
+        # store model every 10000 steps
         if step % 10000 == 0 or (step + 1) == FLAGS.max_steps:
             checkpoint_path = os.path.join(FLAGS.train_dir, 'model')
             saver.save(sess, checkpoint_path, global_step=step)
