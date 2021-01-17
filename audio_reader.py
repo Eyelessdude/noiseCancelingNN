@@ -7,6 +7,7 @@ import threading
 import numpy as np
 import fnmatch
 import os
+import random
 from numpy.lib import stride_tricks
 
 
@@ -52,6 +53,7 @@ class Audio_reader(object): #clean, noisy, coordinator, frames in(8), FFTP(256),
         count = 0
         while not stop:
             ids = list(range(len_sound_files))
+            random.shuffle(ids)
             for i in ids:
                 clean_org, _ = librosa.load(self.cleanfiles[i], sr=None)
                 noisy_org, _ = librosa.load(self.noisyfiles[i], sr=None)
@@ -59,8 +61,11 @@ class Audio_reader(object): #clean, noisy, coordinator, frames in(8), FFTP(256),
                 '''number of generated frames'''
                 gen_frames = np.floor(
                     (len(clean_org) - self.frame_length) / self.frame_move - self.FRAME_IN)
-                data = np.array([noisy_org, clean_org])
-                stride = data.strides
+                # data = np.array([noisy_org, clean_org])
+                noisy_org.shape = (1, -1)
+                clean_org.shape = (1, -1)
+                data = np.concatenate((noisy_org, clean_org))
+                test = data.strides
                 data_frames = stride_tricks.as_strided(
                     data,
                     shape=(gen_frames.astype(int), self.FRAME_IN, 2, self.frame_length),#shape: frames, 8, 2, audio len
@@ -71,10 +76,6 @@ class Audio_reader(object): #clean, noisy, coordinator, frames in(8), FFTP(256),
                         data.strides[1]
                     )
                 )
-                # data_frames2 = tf.compat.v1.transpose(data_frames, [2, 0, 1, 3])
-                # test1 = data_frames2[0][:][:][:]
-                # test2 = data_frames2[1][:][:][:]
-
                 sess.run(self.enqueue_many,
                          feed_dict={self.sample_placeholder_many: data_frames})
                 count += gen_frames

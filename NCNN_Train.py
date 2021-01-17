@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import NCNN
 import audio_reader
-
+import pdb
 from tensorflow.python.framework.ops import disable_eager_execution
 
 disable_eager_execution()
@@ -28,28 +28,28 @@ tf.compat.v1.flags.DEFINE_string(
     'sum_dir',
     './summary',
     """Directory for writing summary""")
-tf.compat.v1.flags.DEFINE_string(
-    'noise_dir',
-    './dataset/Noise_training',
-    """Directory of noise files""")
+# tf.compat.v1.flags.DEFINE_string(
+#     'noise_dir',
+#     './dataset/Noise_training',
+#     """Directory of noise files""")
 tf.compat.v1.flags.DEFINE_string(
     'noisy_dir',
-    './dataset/NoisySpeech_training',
+    './dataset/SNR20/NoisySpeech_training',
     """Directory of noisy speech files""")
 tf.compat.v1.flags.DEFINE_string(
     'clean_dir',
-    './dataset/CleanSpeech_training',
+    './dataset/SNR20/CleanSpeech_training',
     """Directory of clean speech files"""
 )
 '''add validation directories and validation dataset'''
 tf.compat.v1.flags.DEFINE_string(
     'val_noisy_dir',
-    './dataset/NoisySpeech_validation',
+    './dataset/SNR20/NoisySpeech_validation',
     """Directory of noisy speech files, for validating"""
 )
 tf.compat.v1.flags.DEFINE_string(
     'val_clean_dir',
-    './dataset/CleanSpeech_validation',
+    './dataset/SNR20/CleanSpeech_validation',
     """Directory of clean speech files, for validating"""
 )
 
@@ -59,7 +59,7 @@ FFTP = 256  # number of fft points
 EFTP = 129  # number of effective fft points
 frame_move = 64  # roughly 8ms
 batch_size = 128
-FRAME_IN = 8  # amount of spectogram frames presented to the net
+FRAME_IN = 8  # amount of frames presented to the net
 FRAME_OUT = 1  # we want to have just one frame of a full length audio file going out
 validation_samples = 500000  # amount of frames which we want to validate per 100k steps
 batch_of_val = np.floor(validation_samples / batch_size)
@@ -86,6 +86,8 @@ def train():
     train_data_frames = audio_r.dequeue(batch_size)
     val_data_frames = val_audio_r.dequeue(batch_size)
 
+
+
     data_frames = tf.compat.v1.cond(is_val, lambda: val_data_frames, lambda: train_data_frames)
 
     images, targets = NoiseNET.inputs(data_frames)
@@ -111,7 +113,7 @@ def train():
         sess.graph
     )
 
-    # saver.restore(sess, './model-10000') #load the model. worth checking how it learns with incorrectly taught model
+    # saver.restore(sess, './model-30000') #load the model. worth checking how it learns with incorrectly taught model
 
     for step in range(FLAGS.max_steps):
         start_time = time.time()
@@ -121,7 +123,7 @@ def train():
         duration = time.time() - start_time
 
         assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
-        # grab training loss. mby increase lr each 400 steps if it hasn't learnt anything
+        # grab training loss
         if step % 100 == 0:
             num_examples_per_step = batch_size
             examples_per_sec = num_examples_per_step / duration

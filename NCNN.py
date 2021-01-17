@@ -18,7 +18,7 @@ def var_sum(var):
 
 
 def conv1d(x, W):
-    return tf.compat.v1.nn.conv2d(x, W, strides=[1, 100, 1, 1], padding='SAME') #here it should use conv1d, fix later
+    return tf.compat.v1.nn.conv2d(x, W, strides=[1, 128, 1, 1], padding='SAME') #here it should use conv1d, fix later
 #it works like a 1d convolution does
 
 
@@ -161,7 +161,7 @@ class NoiseNet(object):
         return tf.reshape(h_layer10, [-1, self.EFTP])
 
     def loss(self, inf_targets, targets):
-        loss_v = tf.compat.v1.nn.l2_loss(targets - inf_targets) / self.batch_size
+        loss_v = tf.compat.v1.nn.l2_loss(inf_targets - targets) / self.batch_size
         tf.compat.v1.summary.scalar('loss', loss_v)
         return loss_v
 

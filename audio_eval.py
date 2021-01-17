@@ -28,8 +28,8 @@ FFTP = 256
 FRAME_OUT = 1
 mul_fac = 0.2
 frame_move = 64
-noisy_dir = './dataset/NoisySpeech_validation/noisy2.wav'
-clean_dir = './dataset/CleanSpeech_validation/clnsp2.wav'
+noisy_dir = './dataset/SNR20/NoisySpeech_validation/noisy80.wav'
+clean_dir = './dataset/SNR20/CleanSpeech_validation/clnsp80.wav'
 out_original_noisy_dir = './validation/test_noisy.wav'
 out_original_clean_dir = './validation/test_clean.wav'
 out_audio_dir = './validation/test_NCNN.wav'
@@ -78,7 +78,7 @@ population_var = tf.compat.v1.placeholder(tf.float32)
 # with tf.compat.v1.Session() as sess:
 # restore the model
 
-saver.restore(sess, './model-10000')
+saver.restore(sess, './model-780000')
 # sess.run(tf.compat.v1.initialize_all_variables())
 print("Model restored")
 i = 0
