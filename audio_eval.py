@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from numpy.lib import stride_tricks
 from tensorflow.python.framework.ops import disable_eager_execution
 
-
+log10_fac = 1 / np.log(10)
 disable_eager_execution()
 
 FLAGS = tf.compat.v1.flags.FLAGS
@@ -28,8 +28,8 @@ FFTP = 256
 FRAME_OUT = 1
 mul_fac = 0.2
 frame_move = 64
-noisy_dir = './dataset/SNR20/NoisySpeech_validation/noisy80.wav'
-clean_dir = './dataset/SNR20/CleanSpeech_validation/clnsp80.wav'
+noisy_dir = './dataset/SNR10/NoisySpeech_validation/noisy80.wav'
+clean_dir = './dataset/SNR10/CleanSpeech_validation/clnsp80.wav'
 out_original_noisy_dir = './validation/test_noisy.wav'
 out_original_clean_dir = './validation/test_clean.wav'
 out_audio_dir = './validation/test_NCNN.wav'
@@ -77,10 +77,10 @@ population_var = tf.compat.v1.placeholder(tf.float32)
 
 # with tf.compat.v1.Session() as sess:
 # restore the model
-
-saver.restore(sess, './model-780000')
+model_name = './models/21-01-2021 - SNR10 janky/model-1900000'
+saver.restore(sess, model_name)
 # sess.run(tf.compat.v1.initialize_all_variables())
-print("Model restored")
+print("Model restored: %s" % model_name)
 i = 0
 while(i < out_len):
     # show progress
@@ -108,6 +108,7 @@ while(i < out_len):
     slice_end = int(i * frame_move + FFTP)
     out_audio[slice_start: slice_end] += frame_out_tmp * 0.5016
     i = i + 1
+    # data_f = 10 * tf.compat.v1.math.log(data_f5 * 10000) * log10_fac
 # length = img.shape[]
 
 # ipdb.set_trace()

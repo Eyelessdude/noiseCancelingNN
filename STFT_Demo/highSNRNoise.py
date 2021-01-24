@@ -2,7 +2,7 @@ import librosa, librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
 
-file = "../validation/test_NCNN.wav"
+file = "../v2/test_NCNN.wav"
 
 signal, sr = librosa.load(file, sr=16000)
 

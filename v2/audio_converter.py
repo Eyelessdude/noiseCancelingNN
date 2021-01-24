@@ -4,9 +4,8 @@ import pickle as pk
 from scipy import signal
 from scipy.io import wavfile
 
-out_path = './pickle_data'
-noisy_input_data_path = '../dataset/NoisySpeech_training'
-clean_input_data_path = '../dataset/CleanSpeech_training'
+noisy_input_data_path = '../dataset/SNR10/NoisySpeech_training'
+clean_input_data_path = '../dataset/SNR10/CleanSpeech_training'
 
 
 def create_pickle_file(audio_path):
@@ -31,8 +30,8 @@ CleanAudio = create_pickle_file(clean_input_data_path).copy()
 
 # np.save('noisyAudio.npy', NoisyAudio)
 # np.save('cleanAudio.npy', CleanAudio)
-pickle_file = open(os.path.join(out_path, 'noisyAudio.pickle'), 'wb')
+pickle_file = open('../pickle_data/noisyAudio.pickle', 'wb')
 pk.dump(NoisyAudio, pickle_file)
 
-pickle_file = open(os.path.join(out_path, 'cleanAudio.pickle'), 'wb')
+pickle_file = open('../pickle_data/cleanAudio.pickle', 'wb')
 pk.dump(CleanAudio, pickle_file)

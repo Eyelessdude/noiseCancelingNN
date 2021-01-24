@@ -18,8 +18,9 @@ def var_sum(var):
 
 
 def conv1d(x, W):
-    return tf.compat.v1.nn.conv2d(x, W, strides=[1, 128, 1, 1], padding='SAME') #here it should use conv1d, fix later
-#it works like a 1d convolution does
+    return tf.compat.v1.nn.conv2d(x, W, strides=[1, 128, 1, 1], padding='SAME')
+    # for convenience 2d function is used
+    # it works like a 1d convolution does - a single long vector. change 128 to parameter: self.EFTP later
 
 
 def weight_variable(shape):
@@ -41,40 +42,40 @@ class NoiseNet(object):
         self.DECAY = DECAY  # global mean and var estimation using batchnorm decay
 
     def inputs(self, data_frames):  # it's mostly the fourier transform
-        data_frames_t = tf.transpose(data_frames, perm=[2, 0, 1, 3])
+        data_frames_t = tf.compat.v1.transpose(data_frames, perm=[2, 0, 1, 3]) #shape : 2, gen_frame, frame_in, frame_len
         raw_noisyspeech = data_frames_t[0][:][:][:]
         raw_cleanspeech = data_frames_t[1][:][:][:]
 
         # Fast fourier transform
         # shape:
         # batch, N_in, NFFT
-        data_f0 = tf.signal.fft(tf.cast(raw_noisyspeech, tf.complex64))
+        noisy_speech = tf.compat.v1.signal.fft(tf.cast(raw_noisyspeech, tf.complex64))
         # shape:
         # NFFT, batch, N_in
-        data_f1 = tf.transpose(data_f0, [2, 0, 1])
-        data_f2 = data_f1[0:self.EFTP][:][:]
+        noisy_speech = tf.compat.v1.transpose(noisy_speech, [2, 0, 1])
+        noisy_speech = noisy_speech[0:self.EFTP][:][:]
         # shape:
         # batch, N_in, NEFF
-        data_f3 = tf.transpose(data_f2, [1, 2, 0])
-        data_f4 = tf.square(tf.math.real(data_f3)) + tf.square(tf.math.imag(data_f3))
+        noisy_speech = tf.compat.v1.transpose(noisy_speech, [1, 2, 0])
+        noisy_speech = tf.compat.v1.square(tf.compat.v1.math.real(noisy_speech)) + tf.compat.v1.square(tf.math.imag(noisy_speech))
         # limiting the minimum value
-        data_f5 = tf.maximum(data_f4, 1e-10)
+        noisy_speech = tf.compat.v1.maximum(noisy_speech, 1e-10)
         # into log spectrum
-        data_f = 10 * tf.math.log(data_f5 * 10000) * log10_fac
+        noisy_speech = 10 * tf.compat.v1.math.log(noisy_speech * 10000) * log10_fac
         # same operational for reference speech
-        speech_f0 = tf.signal.fft(tf.cast(raw_cleanspeech, tf.complex64))
-        speech_f1 = tf.transpose(speech_f0, [2, 0, 1])
-        speech_f2 = speech_f1[0:self.EFTP][:][:]
-        speech_f3 = tf.transpose(speech_f2, [1, 2, 0])
-        speech_f4 = tf.square(
-            tf.math.real(speech_f3)) + tf.square(tf.math.imag(speech_f3))
-        speech_f5 = tf.maximum(speech_f4, 1e-10)
-        speech_f = 10 * tf.math.log(speech_f5 * 10000) * log10_fac
+        clean_speech = tf.compat.v1.signal.fft(tf.cast(raw_cleanspeech, tf.complex64))
+        clean_speech = tf.compat.v1.transpose(clean_speech, [2, 0, 1])
+        clean_speech = clean_speech[0:self.EFTP][:][:]
+        clean_speech = tf.compat.v1.transpose(clean_speech, [1, 2, 0])
+        clean_speech = tf.compat.v1.square(
+            tf.compat.v1.math.real(clean_speech)) + tf.compat.v1.square(tf.math.imag(clean_speech))
+        clean_speech = tf.compat.v1.maximum(clean_speech, 1e-10)
+        clean_speech = 10 * tf.compat.v1.math.log(clean_speech * 10000) * log10_fac
 
         # shape:
         # batch, N_in, NEFF
-        images = data_f
-        targets = [tf.reshape(speech_f[i][self.FRAME_IN - 1][0:self.EFTP], [1, self.EFTP])
+        images = tf.cast(noisy_speech, tf.float32)
+        targets = [tf.reshape(tf.cast(clean_speech, tf.float32)[i][self.FRAME_IN - 1][0:self.EFTP], [1, self.EFTP])
                    for i in range(0, self.batch_size, 1)]
 
         # do per image whitening
@@ -166,11 +167,6 @@ class NoiseNet(object):
         return loss_v
 
     def train_optimizer(self, loss, lr):
-        optimizer = tf.compat.v1.train.AdamOptimizer(
-            learning_rate=lr,
-            beta1=0.9,
-            beta2=0.999,
-            epsilon=1e-8
-        )
+        optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=lr)
         train_op = optimizer.minimize(loss)
         return train_op

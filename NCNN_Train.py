@@ -15,7 +15,7 @@ from tensorflow.python.client import device_lib
 print(device_lib.list_local_devices())
 
 '''learning rate, could be fun to screw around with'''
-LR = 0.00001
+LR = 0.001
 
 FLAGS = tf.compat.v1.flags.FLAGS
 
@@ -28,32 +28,28 @@ tf.compat.v1.flags.DEFINE_string(
     'sum_dir',
     './summary',
     """Directory for writing summary""")
-# tf.compat.v1.flags.DEFINE_string(
-#     'noise_dir',
-#     './dataset/Noise_training',
-#     """Directory of noise files""")
 tf.compat.v1.flags.DEFINE_string(
     'noisy_dir',
-    './dataset/SNR20/NoisySpeech_training',
+    './dataset/SNR10/NoisySpeech_training',
     """Directory of noisy speech files""")
 tf.compat.v1.flags.DEFINE_string(
     'clean_dir',
-    './dataset/SNR20/CleanSpeech_training',
+    './dataset/SNR10/CleanSpeech_training',
     """Directory of clean speech files"""
 )
 '''add validation directories and validation dataset'''
 tf.compat.v1.flags.DEFINE_string(
     'val_noisy_dir',
-    './dataset/SNR20/NoisySpeech_validation',
+    './dataset/SNR10/NoisySpeech_validation',
     """Directory of noisy speech files, for validating"""
 )
 tf.compat.v1.flags.DEFINE_string(
     'val_clean_dir',
-    './dataset/SNR20/CleanSpeech_validation',
+    './dataset/SNR10/CleanSpeech_validation',
     """Directory of clean speech files, for validating"""
 )
 
-tf.compat.v1.flags.DEFINE_integer('max_steps', 1000000000, """Number of batches to run""")
+tf.compat.v1.flags.DEFINE_integer('max_steps', 230000000, """Number of batches to run""")
 
 FFTP = 256  # number of fft points
 EFTP = 129  # number of effective fft points
@@ -96,7 +92,7 @@ def train():
     loss = NoiseNET.loss(inf_targets, targets)
 
     train_op = NoiseNET.train_optimizer(loss, LR)
-    saver = tf.compat.v1.train.Saver(tf.compat.v1.all_variables(), max_to_keep=99)  # store all the models
+    saver = tf.compat.v1.train.Saver(tf.compat.v1.all_variables(), max_to_keep=200)  # store all the models
 
     summary_op = tf.compat.v1.summary.merge_all()
     init = tf.compat.v1.initialize_all_variables()
@@ -113,7 +109,7 @@ def train():
         sess.graph
     )
 
-    # saver.restore(sess, './model-30000') #load the model. worth checking how it learns with incorrectly taught model
+    # saver.restore(sess, './model-1120000') #load the model. worth checking how it learns with incorrectly taught model
 
     for step in range(FLAGS.max_steps):
         start_time = time.time()

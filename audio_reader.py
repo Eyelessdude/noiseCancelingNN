@@ -59,12 +59,10 @@ class Audio_reader(object): #clean, noisy, coordinator, frames in(8), FFTP(256),
                 noisy_org, _ = librosa.load(self.noisyfiles[i], sr=None)
 
                 '''number of generated frames'''
+                # our window is
                 gen_frames = np.floor(
                     (len(clean_org) - self.frame_length) / self.frame_move - self.FRAME_IN)
-                # data = np.array([noisy_org, clean_org])
-                noisy_org.shape = (1, -1)
-                clean_org.shape = (1, -1)
-                data = np.concatenate((noisy_org, clean_org))
+                data = np.array([noisy_org, clean_org])
                 test = data.strides
                 data_frames = stride_tricks.as_strided(
                     data,
