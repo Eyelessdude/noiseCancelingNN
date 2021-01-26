@@ -47,30 +47,16 @@ class NoiseNet(object):
         raw_cleanspeech = data_frames_t[1][:][:][:]
 
         # Fast fourier transform
-        # shape:
-        # batch, N_in, NFFT
         noisy_speech = tf.compat.v1.signal.fft(tf.cast(raw_noisyspeech, tf.complex64))
-        # shape:
-        # NFFT, batch, N_in
         noisy_speech = tf.compat.v1.transpose(noisy_speech, [2, 0, 1])
+        #limit FFTP to EFTP
         noisy_speech = noisy_speech[0:self.EFTP][:][:]
-        # shape:
-        # batch, N_in, NEFF
         noisy_speech = tf.compat.v1.transpose(noisy_speech, [1, 2, 0])
-        noisy_speech = tf.compat.v1.square(tf.compat.v1.math.real(noisy_speech)) + tf.compat.v1.square(tf.math.imag(noisy_speech))
-        # limiting the minimum value
-        noisy_speech = tf.compat.v1.maximum(noisy_speech, 1e-10)
-        # into log spectrum
-        noisy_speech = 10 * tf.compat.v1.math.log(noisy_speech * 10000) * log10_fac
-        # same operational for reference speech
+
         clean_speech = tf.compat.v1.signal.fft(tf.cast(raw_cleanspeech, tf.complex64))
         clean_speech = tf.compat.v1.transpose(clean_speech, [2, 0, 1])
         clean_speech = clean_speech[0:self.EFTP][:][:]
         clean_speech = tf.compat.v1.transpose(clean_speech, [1, 2, 0])
-        clean_speech = tf.compat.v1.square(
-            tf.compat.v1.math.real(clean_speech)) + tf.compat.v1.square(tf.math.imag(clean_speech))
-        clean_speech = tf.compat.v1.maximum(clean_speech, 1e-10)
-        clean_speech = 10 * tf.compat.v1.math.log(clean_speech * 10000) * log10_fac
 
         # shape:
         # batch, N_in, NEFF

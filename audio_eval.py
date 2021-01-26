@@ -7,8 +7,6 @@ import numpy as np
 import soundfile as sf
 import librosa
 import NCNN
-from matplotlib import pyplot as plt
-from numpy.lib import stride_tricks
 from tensorflow.python.framework.ops import disable_eager_execution
 
 log10_fac = 1 / np.log(10)
@@ -37,14 +35,13 @@ out_audio_dir = './validation/test_NCNN.wav'
 noisy_org, sr = librosa.load(noisy_dir, sr=None)
 clean_org, _ = librosa.load(clean_dir, sr=None)
 
-
+#this still doesn't work and at this point I'm not exactly sure why.
 in_stft = np.transpose(librosa.core.stft(noisy_org, n_fft=FFTP, hop_length=frame_move, window=np.hanning(FFTP)), [1, 0])
 in_stft_amp = np.maximum(np.abs(in_stft), 1e-5)
 in_data = 20. * np.log10(in_stft_amp * 100)
 phase_data = in_stft / in_stft_amp
 
 data_len = in_data.shape[0]
-assert EFTP == in_data.shape[1], 'Image height incompatible'
 out_len = data_len - FRAME_IN + 1
 shape = int((out_len - 1) * frame_move + FFTP)
 out_audio = np.zeros(shape=[shape])
@@ -79,7 +76,7 @@ population_var = tf.compat.v1.placeholder(tf.float32)
 # restore the model
 model_name = './models/21-01-2021 - SNR10 janky/model-1900000'
 saver.restore(sess, model_name)
-# sess.run(tf.compat.v1.initialize_all_variables())
+# sess.run(tf.compat.v1.initialize_all_variables()) # uncomment for funny
 print("Model restored: %s" % model_name)
 i = 0
 while(i < out_len):
@@ -102,17 +99,12 @@ while(i < out_len):
     con_data = out_stft[-2:0:-1].conjugate()
     out_amp = np.concatenate((out_stft, con_data))
     frame_out_tmp = np.fft.ifft(out_amp).astype(np.float64)
-    # frame_out_tmp = frame_out_tmp / 255
-    # overlap and add to get the final time domain wavform
+
     slice_start = int(i * frame_move)
     slice_end = int(i * frame_move + FFTP)
     out_audio[slice_start: slice_end] += frame_out_tmp * 0.5016
     i = i + 1
-    # data_f = 10 * tf.compat.v1.math.log(data_f5 * 10000) * log10_fac
-# length = img.shape[]
 
-# ipdb.set_trace()
-# store the computed results
 sf.write(out_audio_dir, out_audio, sr)
 sf.write(out_original_noisy_dir, noisy_org, sr)
 sf.write(out_original_clean_dir, clean_org, sr)

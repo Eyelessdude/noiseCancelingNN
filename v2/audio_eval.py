@@ -1,14 +1,18 @@
 import os
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 from scipy import signal
 from scipy.io import wavfile
 from tensorflow.keras.models import load_model
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 # Replace with proper path.
-tested_audio = '../dataset/SNR0/NoisySpeech_training/noisy3.wav'
 
+# for j in range(1, 50):
+
+tested_audio = '../dataset/SNR10/NoisySpeech_validation/home4.wav'
+
+# load the model here
 model = load_model(root_path + '/modelconv1d-AdamOpt.h5')
 
 sample_rate, samples = wavfile.read(tested_audio)
@@ -36,10 +40,8 @@ result_Zxx = np.zeros((129, 0))
 
 for i in range(times):
     exponential = np.exp(result[i])
-    result_Zxx = np.append(result_Zxx, exponential * np.cos(Phase[i]) + 1j * exponential * np.sin(Phase[i]),
-                           axis=1)
+    result_Zxx = np.append(result_Zxx, exponential * np.cos(Phase[i]) + 1j * exponential * np.sin(Phase[i]), axis=1)
 signal_times, istft = signal.istft(result_Zxx, nperseg=256, nfft=256)
 istft = np.asarray(istft, dtype=np.int16)
 
-wavfile.write(root_path + '/test_NCNN.wav', sample_rate, istft)
-wavfile.write(root_path + '/test_noisy.wav', sample_rate, samples)
+wavfile.write(root_path + '/result_mine/test_NCNN.wav', sample_rate, istft)
